@@ -10,9 +10,9 @@ pygame.font.init()
 font = pygame.font.Font(None, 30)
 
 COLOR_INACTIVE = (138, 138, 138)
-COLOR_ACTIVE = (39, 210, 39)
+COLOR_ACTIVE = (255, 255, 255)
 MY_COLOR = (randint(0, 255), randint(0, 255), randint(0, 255))
-BGCOLOR = (65, 33, 12)
+BGCOLOR = (34, 142, 213)
 
 DISPLAYWIDTH, DISPLAYHEIGHT = 400, 400
 
@@ -73,11 +73,11 @@ class Client(ConnectionListener):
         self.message = ''
         self.latest_msg = ''
 
+        self.nickname = ''
 
         self.userid = start_new_thread(self.InputLoop, ())
-        pygame.display.set_caption('Chat: ' + str(self.userid))
-        connection.Send({"action": "userid", "userid": self.userid})
-        self.history = [{"author": self.userid, "message":self.message}]
+        connection.Send({"action": "userinfo", "userid": self.userid, "nickname":self.nickname})
+        self.history = [{"author": [self.userid, self.nickname], "message":self.message}]
 
     
     def Loop(self):
@@ -93,7 +93,43 @@ class Client(ConnectionListener):
         screen.fill(BGCOLOR)
 
         return screen
+
+    def menu(self):
+        nicknamebox = InputBox(50, 250, 300, 50)
+        menuIsOn = True
+        pygame.mouse.set_visible(True)
+        nick = '' 
+        while menuIsOn:
+            for e in pygame.event.get():
+                if e.type == pygame.QUIT:
+                    pygame.quit()
+                    exit()
+                if e.type == pygame.MOUSEBUTTONDOWN:
+                    if onButton:
+                        menuIsOn = False
+                nick = nicknamebox.handle_event(e)
+            if nick != '':
+                self.nickname = nick
+                print(self.nickname, "Changed")
+            self.screen.fill(BGCOLOR)
+            onButton = False
+            nicknamebox.update()
+            nicknamebox.draw(self.screen)
+
+            pointer = pygame.mouse.get_pos()
+            if pointer[0]>100 and pointer[0]<250 and pointer[1]>340 and pointer[1]<375:
+                onButton = True
+
+
+            self.screen.blit(font.render("Please type in your nickname: ", 1, COLOR_ACTIVE), [50, 200])
+            self.screen.blit(font.render("Join chat", 1, MY_COLOR), [150, 340])
+            self.screen.blit(font.render("Welcome, " + str(self.nickname if self.nickname != '' else self.userid), 1, COLOR_INACTIVE), [120, 20])
+            pygame.display.update()
+            pygame.time.delay(10)
+
     def run(self):
+        self.menu()
+        connection.Send({"action": "userinfo", "userid": self.userid, "nickname": self.nickname})
         while True:
             connection.Pump()
             self.Pump()
@@ -103,20 +139,27 @@ class Client(ConnectionListener):
                 if e.type == pygame.QUIT:
                     pygame.quit()
                     exit()
+                if e.type == pygame.KEYDOWN:
+                    if e.key == pygame.K_ESCAPE:
+                        self.menu()
+                        connection.Send({"action": "userinfo", "userid": self.userid, "nickname": self.nickname})
+
+
                 self.message = self.box.handle_event(e)
             self.screen.fill(BGCOLOR)
+            pygame.display.set_caption('Chat: ' + str(self.nickname if self.nickname != '' else self.userid))
             self.box.update()
             self.box.draw(self.screen)
 
             if len(self.message) != 0:
                 sleep(1)
-                self.history.append({"author": self.userid, "message": str(self.userid) + ": " + self.message})
+                self.history.append({"author": [self.userid, self.nickname], "message": str(self.nickname if self.nickname != '' else self.userid) + ": " + self.message})
                 connection.Send({"action":"message", "history":self.history})
 
             strins = list(reversed(range(300-50*len(self.history), 300, 50)))
             self.history.reverse()
             for m in range(len(self.history)):
-                if self.history[m]["author"] == self.userid:
+                if self.history[m]["author"][0] == self.userid:
                     self.screen.blit(font.render(self.history[m]["message"], 1, MY_COLOR), [50, strins[m]])
                 else:
                     self.screen.blit(font.render(self.history[m]["message"], 1, COLOR_ACTIVE), [50, strins[m]])

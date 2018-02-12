@@ -9,6 +9,7 @@ class ClientChannel(Channel):
 	def __init__(self, *args, **kwargs):
 		# This happens whenever a new client is connected
 		self.userid = 0
+		self.nickname = ''
 		Channel.__init__(self, *args, **kwargs)
 	
 	def Close(self):
@@ -19,10 +20,11 @@ class ClientChannel(Channel):
 	##################################
 	
 	def Network_message(self, data):
-		self._server.SendToAll({"action": "message", "history": data['history'], "who": self.userid})
+		self._server.SendToAll({"action": "message", "history": data['history']})
 	
-	def Network_userid(self, data):
+	def Network_userinfo(self, data):
 		self.userid = data['userid']
+		self.nickname = data['nickname']
 		self._server.SendPlayers()
 
 class ChatServer(Server):
@@ -48,7 +50,7 @@ class ChatServer(Server):
 		self.SendPlayers()
 	
 	def SendPlayers(self):
-		self.SendToAll({"action": "players", "players": [p.userid for p in self.players]})
+		self.SendToAll({"action": "players", "players": [p.userid if p.nickname == '' else p.nickname for p in self.players]})
 	
 	def SendToAll(self, data):
 		[p.Send(data) for p in self.players]
