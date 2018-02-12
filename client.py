@@ -122,7 +122,13 @@ class Client(ConnectionListener):
 
 
             self.screen.blit(font.render("Please type in your nickname: ", 1, COLOR_ACTIVE), [50, 200])
-            self.screen.blit(font.render("Join chat", 1, MY_COLOR), [150, 340])
+            self.screen.blit(font.render("(press enter to save)", 1, COLOR_INACTIVE), [100, 310])
+
+            if onButton:
+                self.screen.blit(font.render("Join chat", 1, MY_COLOR), [150, 340])
+            else:
+                self.screen.blit(font.render("Join chat", 1, COLOR_INACTIVE), [150, 340])
+
             self.screen.blit(font.render("Welcome, " + str(self.nickname if self.nickname != '' else self.userid), 1, COLOR_INACTIVE), [120, 20])
             pygame.display.update()
             pygame.time.delay(10)
